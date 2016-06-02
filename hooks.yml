@@ -1,0 +1,6 @@
+---
+- hook: example
+  command: echo this is an example hook
+  #auth:
+  #  username: example
+  #  password: secret
