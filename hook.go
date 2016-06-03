@@ -12,6 +12,10 @@ type Hook struct {
 	Hook    string `yaml:"hook"`
 	Command string `yaml:"command"`
 	Auth    *Auth  `yaml:"auth"`
+	Notify  struct {
+		Web   []string `yaml:"web"`
+		Email []string `yaml:"email"`
+	} `yaml:"notify"`
 }
 
 func ReadHookFile(path string) (Hooks, error) {

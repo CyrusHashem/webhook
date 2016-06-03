@@ -29,7 +29,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	h.commander.Exec()
 	w.WriteHeader(204)
 }

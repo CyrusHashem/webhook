@@ -13,11 +13,18 @@ import (
 var (
 	listenAddr string
 	hookFile   string
+	smtpConf   SmtpConf
+	mailFrom   string
 )
 
 func init() {
 	flag.StringVar(&listenAddr, "listen", ":8000", "address to listen to")
 	flag.StringVar(&hookFile, "hook-file", "", "path to the hook file to use")
+	flag.StringVar(&smtpConf.Host, "smtp-host", "localhost", "smtp server")
+	flag.IntVar(&smtpConf.Port, "smtp-port", 25, "smtp port")
+	flag.StringVar(&smtpConf.User, "smtp-user", "", "smtp username")
+	flag.StringVar(&smtpConf.Pass, "smtp-pass", "", "smtp password")
+	flag.StringVar(&mailFrom, "mail-from", "webhook@localhost.local", "mail from address")
 }
 
 func main() {
@@ -42,7 +49,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	for _, hook := range hooks {
-		commander := NewCommander(hook.Command)
+		commander := buildCommander(hook)
 		go commander.Run()
 		defer commander.Close()
 		handler := NewHandler(hook.Hook, hook.Auth, commander)
@@ -72,4 +79,17 @@ func listen(addr string) (net.Listener, error) {
 		return nil, err
 	}
 	return l, nil
+}
+
+func buildCommander(hook *Hook) *Commander {
+	notifier := NewMultiNotifier()
+
+	for _, url := range hook.Notify.Web {
+		notifier.Add(NewWebNotifier(url))
+	}
+
+	for _, email := range hook.Notify.Email {
+		notifier.Add(NewEmailNotifier(mailFrom, email, smtpConf))
+	}
+	return NewCommander(hook.Command, notifier)
 }

@@ -4,3 +4,8 @@
   #auth:
   #  username: example
   #  password: secret
+  #notify:
+  #  web:
+  #    - https://notify.example.com/failures
+  #  email:
+  #    - admin@example.com

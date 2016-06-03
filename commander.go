@@ -1,22 +1,26 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 )
 
 type Commander struct {
-	command string
-	queue   chan struct{}
-	done    chan struct{}
+	command  string
+	notifier Notifier
+	queue    chan struct{}
+	done     chan struct{}
 }
 
-func NewCommander(command string) *Commander {
+func NewCommander(command string, notifier Notifier) *Commander {
 	return &Commander{
-		command: command,
-		queue:   make(chan struct{}, 1),
-		done:    make(chan struct{}),
+		command:  command,
+		notifier: notifier,
+		queue:    make(chan struct{}, 1),
+		done:     make(chan struct{}),
 	}
 }
 
@@ -40,16 +44,20 @@ func (c *Commander) Run() {
 			close(c.done)
 			return
 		}
-		fmt.Println("exec:", c.command)
-
-		if err := c.exec(); err != nil {
-			fmt.Printf("failed to exec: %s: %s\n", c.command, err)
-		}
+		c.exec()
 	}
 }
 
-func (c *Commander) exec() error {
-	out, err := exec.Command("sh", "-c", c.command).CombinedOutput()
-	os.Stdout.Write(out)
-	return err
+func (c *Commander) exec() {
+	fmt.Println("exec:", c.command)
+	cmd := exec.Command("sh", "-c", c.command)
+	buf := bytes.NewBuffer(nil)
+	w := io.MultiWriter(buf, os.Stdout)
+	cmd.Stdout = w
+	cmd.Stderr = w
+
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("failed to exec: %s: %s\n", c.command, err)
+		c.notifier.Notify(NewNotification(c.command, err.Error(), buf.String()))
+	}
 }
