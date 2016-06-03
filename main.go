@@ -58,8 +58,18 @@ func main() {
 }
 
 func listen(addr string) (net.Listener, error) {
-	if len(addr) > 0 && addr[0] == '/' {
-		return net.Listen("unix", addr)
+	if len(addr) == 0 || addr[0] != '/' {
+		return net.Listen("tcp", addr)
 	}
-	return net.Listen("tcp", addr)
+	l, err := net.Listen("unix", addr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.Chmod(addr, 0777); err != nil {
+		l.Close()
+		return nil, err
+	}
+	return l, nil
 }
